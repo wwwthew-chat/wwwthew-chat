@@ -1,5 +1,5 @@
 // Copied from socket.io website, rest is original
-// By WWWtheW and Actiniumn44
+
 
 const express = require('express');
 const app = express();
