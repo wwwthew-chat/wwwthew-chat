@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Username</title>
+    <style>html{background-color:#eee;}</style>
+  </head>
+  <body>
+    <h1>To start chatting, please enter your username.</h1>
+    <style>#username,#room{
+      background-color:lime;
+      height:5vw;
+      width:60vw;
+      border:1px solid black;
+      border-radius:5px;
+    }
+    #chat{
+      background-color:#333;
+      color:#fff;
+      border: none;
+      height:5vw;
+      width:35vw;
+      border-radius:5px;
+    }</style>
+    <form action="/chat" autocomplete="off">
+      <input placeholder="Username" name="username" required id="username">
+      <input placeholder="Room name" name="room" id="room"><br>
+      <button id="chat">Let's get chatting!</button>
+    </form>
+  </body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The WWWtheW chat</title>
+      <style>
+        body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+        #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+        #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+        #input:focus { outline: none; }
+        #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+        #messages { list-style-type: none; margin: 0; padding: 0; }
+        #messages > li { padding: 0.5rem 1rem; }
+        #messages > li:nth-child(odd) { background: #efefef; }
+        #listpeople {
+          background-color:#333;
+          position:fixed;
+          right:0;
+          top:0;
+          z-index:1000;
+          border:none;
+          padding: 0 1rem;
+          margin:0.25rem;
+          border-radius:3px;
+          outline:none;
+          color:#fff;
+          height:32px;
+          width:10vw;
+          cursor:pointer;
+        }
+        #clearhistory{
+          background-color:#333;
+          position:fixed;
+          right:0;
+          top:36px;
+          z-index:1000;
+          border:none;
+          padding: 0 1rem;
+          margin:0.25rem;
+          border-radius:3px;
+          outline:none;
+          color:#fff;
+          height:32px;
+          width:10vw;
+          cursor:pointer;
+        }
+        #listbotsbutton{
+          background-color:#333;
+          position:fixed;
+          right:0;
+          top:72px;
+          z-index:1000;
+          border:none;
+          padding: 0 1rem;
+          margin:0.25rem;
+          border-radius:3px;
+          outline:none;
+          color:#fff;
+          height:32px;
+          width:10vw;
+          cursor:pointer;
+        }
+        /* The Modal (background) */
+        .modal {
+          display: none; /* Hidden by default */
+          position: fixed; /* Stay in place */
+          z-index: 1; /* Sit on top */
+          left: 0;
+          top: 0;
+          width: 100%; /* Full width */
+          height: 100%; /* Full height */
+          overflow: auto; /* Enable scroll if needed */
+          background-color: rgb(0,0,0); /* Fallback color */
+          background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+
+        /* Modal Content/Box */
+        .modal-content {
+          background-color: #fefefe;
+          margin: 15% auto; /* 15% from the top and centered */
+          padding: 20px;
+          border: 1px solid #888;
+          width: 80%; /* Could be more or less, depending on screen size */
+        }
+        .close {
+          color: red;
+          float: left;
+          font-size: 48px;
+          font-weight: bold;
+          background-color:white;
+          cursor:pointer;
+        }
+        #kick,#clearhistoryyes,#clearhistoryno,#deletemsgyes,#deletemsgno,#addbots{
+          height:2.5vw;
+          width:126px;
+          background-color:lightgrey;
+          border:none;
+          border-radius:5px;
+          cursor:pointer;
+        }
+        .delete{
+          float:right;
+          cursor:pointer;
+        }
+
+
+        .vaplcodewindow{
+          resize:none;
+          background-color:black;
+          width:1150px;
+          height:64px;
+          color:white;
+          font-family:"Anonymous Pro";
+        }
+        .vaplcodeoutput{
+          background-color:black;
+          width:1150px;
+          height:64px;
+          color:white;
+          font-family:"Anonymous Pro";
+          padding:2px;
+        }
+        .runvaplcodebutton{
+          background-color:lime;
+          border:none;
+          height:48px;
+          width:120px;
+        }
+        .botstatusbox{
+          background-color:lime;
+          border-radius:8px;
+          margin:4px;
+        }
+      </style>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  </head>
+  <body onbeforeunload="socket.emit('user disconnect', username,room);socket.emit('chat message', '<b>System: '+username+' connected</b>')">
+    <script>
+      urlthing = new URLSearchParams(window.location.search);
+      username = urlthing.get("name")
+      if (!username){
+        username = prompt("Hi! What's your name?") 
+      }
+    </script>
+    <script id="self_destruct">
+      correct = ["wwwthew", "yeetyeet", "actiniumissuperiortowolfram"]
+      const password = urlthing.get("password")
+      if (correct.includes(password) === false){
+        window.location.replace("https://socketio-chat.wwwthew.repl.co/validation-fail")
+      }
+      document.getElementById("self_destruct").remove()
+    </script>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    <button id="listpeople" onclick="lstpep()">List of people</button>
+    <button id="clearhistory" onclick="clearhistoryconfirm()" class="controlbuttons">Clear chat history</button>
+    <button id="listbotsbutton" onclick="getbots()">List of available bots</button>
+    <div id="clearhistoryconfirmmsg_frame" class="modal">
+      <span class="close" onclick="this.parentElement.style.display='none';this.parentElement.style.display='none'">&times;</span>
+      <div id="clearhistoryconfirmmsg" class="modal-content">
+        <h1>Are you sure you want to clear history? This cannot be undone.</h1>
+        <h2>Note: you must refresh for people to see you clear history</h2>
+        <button id="clearhistoryyes" onclick="emitclearhistory();this.parentElement.parentElement.style.display='none'">Yes</button>
+        <button id="clearhistoryno" onclick="this.parentElement.parentElement.style.display='none'">No</button>
+      </div>
+    </div>
+    <div id="listofpeople_frame" class="modal">
+      <span class="close" onclick="this.parentElement.style.display='none'">&times;</span>
+      <div id="listofpeople" class="modal-content">
+        <h1>Users online:</h1>
+        <div id="listofpeople1"></div>
+        <button id="kick" onclick="kickselected()">Kick selected</button>
+      </div>
+    </div>
+    <div id="deletemsgconfirm_frame" class="modal">
+      <span class="close" onclick="this.parentElement.style.display='none'">&times;</span>
+      <div id="deletemsg" class="modal-content">
+        <h1>Are you sure you want to delete this message? This cannot be undone.</h1>
+        <button id="deletemsgyes" onclick="deletemsg(elementtodelete);this.parentElement.parentElement.style.display='none'">Yes</button>
+        <button id="deletemsgno" onclick="this.parentElement.parentElement.style.display='none'">No</button>
+      </div>
+    </div>
+    <div id="listofbots_frame" class="modal">
+      <span class="close" onclick="this.parentElement.style.display='none'">&times;</span>
+      <div id="listofbots" class="modal-content">
+        <h1>Available bots to add:</h1>
+        <div id="listofbots1"></div>
+        <button id="addbots" onclick="addbotsselected()">Add selected bots</button>
+      </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const room = urlthing.get("room")
+      var socket = io();
+
+      socket.emit("join room", room)
+      var messages = document.getElementById('messages');
+      var form = document.getElementById('form');
+      var input = document.getElementById('input');
+      var message_num = 1
+      var elementtodelete = ""
+      var elementidtodelete = "-1"
+      atnotif = document.createElement("AUDIO")
+      atnotif.src = "/atnotification.mp3"
+      socket.emit("chat message", "<b>System: <span style='color:red'>"+username+"</span> connected</b>",room)
+      var botlistforreference = {}
+
+
+      function randomnum(){
+        num = ""
+        for (var i=0;i<10;i++){
+          num += Math.floor(Math.random() * 10)
+        }
+        return num
+      }
+
+      function getcodewindow(vaplcode){
+        newnum = randomnum()
+        newwindow = "<textarea class='vaplcodewindow' id='vaplcodewindow"+newnum+"'>"+vaplcode+"</textarea><br><button class='runvaplcodebutton' onclick='runvaplcode(document.getElementById(\"vaplcodewindow"+newnum+"\").value,"+newnum+")'>Run</button><br><pre class='vaplcodeoutput' id='vaplcodeoutput"+newnum+"'>Output will appear...</pre>"
+        return newwindow
+      }
+
+      function runvaplcode(vaplcode,codewindownum){
+        $.post("https://vapl-fetchable.wwwthew.repl.co/output",{
+          data:vaplcode
+        }).done((res)=>{
+          console.log("res: "+res)
+          var output = document.getElementById("vaplcodeoutput"+codewindownum.toString())
+          output.innerHTML = res
+        })
+      }
+
+      function returninputtonormal(){
+        input.style = ""
+        input.disabled = false
+        input.value = ""
+      }
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (input.value.includes("/ban")){
+          socket.emit("eval", "banned.set('"+input.value.substring(5, input.value.length)+"','"+input.value.substring(5, input.value.length)+"')")
+          input.value = ""
+        }
+        if (input.value.includes("/unban")){
+          socket.emit("eval", "banned.delete('"+input.value.substring(7, input.value.length)+"')")
+          input.value = ""
+        }
+        else if (input.value) {
+          vapl_code = input.value.match(/\[vapl\](.*)\[\/vapl\]/)
+          if (vapl_code !== null){
+            vapl_code = vapl_code[1]
+            console.log(input.value.match(/\[vapl\](.*)\[\/vapl\]/)[0])
+            input.value = input.value.replace(input.value.match(/\[vapl\](.*)\[\/vapl\]/)[0],getcodewindow(vapl_code))
+          }
+          if (input.value.match(/<script>.*<\/script>/) !== null){
+            input.style.backgroundColor = "red"
+            input.style.color = "black"
+            input.disabled = true
+            input.value = "DON'T THINK ABOUT XSS ATTACKING US 🤬 (EVEN THOUGH YOU'RE AN ADMIN)"
+            setTimeout(returninputtonormal,5000)
+            return;
+          }
+          socket.emit('chat message', "<b><span style=\"color:red;\">"+username+":</span> "+"</b>"+input.value,room);
+          input.value = '';
+        }
+      });
+
+      socket.on('chat message', function(msg) {
+        var item = document.createElement('li');
+        item.setAttribute("id","msg"+message_num)
+        messages.appendChild(item);
+        item.innerHTML = msg+"<span class='delete' onclick='deletemsgconfirm(this,this.parentElement.id)'>🗑️</span>";
+        window.scrollTo(0, document.body.scrollHeight);
+        message_num +=1
+      });
+
+      socket.on('online', (listerr) => {
+        console.log(listerr)
+        document.getElementById("listofpeople1").innerHTML = ""
+        /*if (listerr === []){
+          document.getElementById('listofpeople1').innerHTML = "No one is online"
+        } else {*/
+        listerr.forEach(
+          (name)=>{
+            box = document.createElement("input")
+            box.setAttribute("name", "kick"+name)
+            box.setAttribute("type", "checkbox")
+            box.setAttribute("class", "kickselect")
+            document.getElementById("listofpeople1").appendChild(box)
+            label = document.createElement("LABEL")
+            label.setAttribute("for","kick"+name)
+            document.getElementById("listofpeople1").appendChild(label).textContent = name
+            document.getElementById("listofpeople1").innerHTML += "<br>"
+          });
+          document.getElementById("listofpeople1").innerHTML += "<br>"
+        document.getElementById("listofpeople_frame").style.display = "block"
+      });
+      function lstpep(){
+        socket.emit('eval', 'io.emit("online", Array.from(ONLINE.keys()))')
+      }
+      function getbots(){
+        socket.emit('send bot list',username)
+      }
+      function kickselected(){
+        checkboxes = document.querySelectorAll(".kickselect")
+        checkboxes.forEach((elmnt)=>{
+          if (elmnt.checked === true){
+            socket.emit("kick", elmnt.nextSibling.innerHTML)
+            elmnt.nextSibling.nextSibling.remove()
+            elmnt.nextSibling.remove()
+            elmnt.remove()
+          } else {
+            console.log("Not selected")
+          }
+        });
+      }
+      socket.on("ev", (data)=>{eval(data)})
+      socket.on("chat history", (array)=>{
+        if (!new Map(Object.entries(array)).get(room)){
+					array = []
+				}else{
+					array = Array.from(Object.keys(new Map(Object.entries(array)).get(room)))
+				}
+        message_num = 0
+        document.querySelectorAll("#messages>li").forEach(element=>element.remove())
+        array.forEach(element=>{
+          var item = document.createElement('li')
+          item.setAttribute("id", "msg"+message_num);
+          messages.appendChild(item);
+          item.innerHTML = element+"<span class='delete' onclick='deletemsgconfirm(this,this.parentElement.id)'>🗑️</span>";
+          window.scrollTo(0, document.body.scrollHeight);
+          message_num++
+        });
+      });
+      socket.on("clear history",function(){
+        document.getElementById("messages").innerHTML = ""
+      });
+      function clearhistoryconfirm(){
+        document.getElementById("clearhistoryconfirmmsg_frame").style.display = "block"
+      }
+      function emitclearhistory(){
+        socket.emit('clear history',room)
+      }
+      function deletemsgconfirm(element,id){
+        document.getElementById("deletemsgconfirm_frame").style.display = "block"
+        elementtodelete = element
+        elementidtodelete = id
+      }
+      function deletemsg(element){
+        texter = element.parentElement
+        element.remove()
+        console.log(texter.innerHTML)
+        //console.log(texter.firstElementChild.innerText)
+        socket.emit("delete msg history",texter.innerHTML,room)
+        //console.log(element,texter)
+        //console.log(texter.firstElementChild.innerHTML)
+        socket.emit("delete msg",elementidtodelete,room)
+        texter.remove()
+        console.log("deleted")
+      }
+      socket.on('notification @',(name)=>{
+        if (username === name){
+          atnotif.play()
+        }
+      });
+      socket.on("admin delete msg",(roomname,msgid)=>{
+        if (roomname === room){
+          document.getElementById(msgid).remove()
+        }
+      })
+      // socket.on("send bot list",(usnm,lstbots)=>{
+      //   if (usnm === username){
+      //     document.getElementById("listofbots1").innerHTML = ""
+      //     lstofbots = Object.keys(lstbots)
+      //     lstofbots.forEach(
+      //     (botname)=>{
+      //       box = document.createElement("input")
+      //       box.setAttribute("name", "bot"+name)
+      //       box.setAttribute("type", "checkbox")
+      //       box.setAttribute("class", "botselect")
+      //       document.getElementById("listofbots1").appendChild(box)
+      //       label = document.createElement("LABEL")
+      //       label.setAttribute("for","bot"+name)
+      //       document.getElementById("listofbots1").appendChild(label).textContent = botname
+      //       status = "<span class='botstatusbox'>"+lstbots[botname]["status"]+"</span>"
+      //       document.getElementById("listofbots1").innerHTML += status
+      //       document.getElementById("listofbots1").innerHTML += "<br>"
+      //     });
+      //     document.getElementById("listofbots1").innerHTML += "<br>"
+      //     document.getElementById("listofbots_frame").style.display = "block"
+      //   }
+      // });
+      // function addbotsselected(){
+      //   checkboxes = document.querySelectorAll(".botselect")
+      //   checkboxes.forEach((elmnt)=>{
+      //     if (elmnt.checked === true){
+      //       socket.emit("kick", elmnt.nextSibling.innerHTML)
+      //     } else {
+      //       console.log("Not selected")
+      //     }
+      //   });
+      // }
+    </script>
+  </body>
+</html>

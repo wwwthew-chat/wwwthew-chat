@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The WWWtheW chat</title>
+      <script src="/socket.io/socket.io.js"></script>
+      <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Anonymous+Pro" />
+      <style>
+        body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+        #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+        #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+        #input:focus { outline: none; }
+        #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+        #messages { list-style-type: none; margin: 0; padding: 0; }
+        #messages > li { padding: 0.5rem 1rem; }
+        #messages > li:nth-child(odd) { background: #efefef; }
+
+
+        .vaplcodewindow{
+          resize:none;
+          background-color:black;
+          width:1150px;
+          height:64px;
+          color:white;
+          font-family:"Anonymous Pro";
+        }
+        .vaplcodeoutput{
+          background-color:black;
+          width:1150px;
+          height:64px;
+          color:white;
+          font-family:"Anonymous Pro";
+          padding:2px;
+        }
+        .runvaplcodebutton{
+          background-color:lime;
+          border:none;
+          height:48px;
+          width:120px;
+        }
+      </style>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  </head>
+  <body onbeforeunload="socket.emit('user disconnect', username,room);socket.emit('chat message', '<b>System: '+username+' connected</b>')">
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    <script>
+      var urlthing = new URLSearchParams(window.location.search);
+      /*var username = ""
+      setTimeout(function(){var*/const username = urlthing.get("username")/*}, 2000)*/
+      const room = urlthing.get("room")
+      var message_num = 0
+      notif = document.createElement("AUDIO")
+      notif.src = "/annoying.mp3"
+      notif = document.createElement("AUDIO")
+      notif.src = "/annoying.mp3"
+
+      var socket = io();
+      socket.emit("join room", room)
+      socket.emit("chat message", "<b>System: "+username+" connected</b>",room)
+      var messages = document.getElementById('messages');
+      var form = document.getElementById('form');
+      var input = document.getElementById('input');
+
+
+      function randomnum(){
+        num = ""
+        for (var i=0;i<10;i++){
+          num += Math.floor(Math.random() * 10)
+        }
+        return num
+      }
+
+      function getcodewindow(vaplcode){
+        newnum = randomnum()
+        newwindow = "<textarea class='vaplcodewindow' id='vaplcodewindow"+newnum+"'>"+vaplcode+"</textarea><br><button class='runvaplcodebutton' onclick='runvaplcode(document.getElementById(\"vaplcodewindow"+newnum+"\").value,"+newnum+")'>Run</button><br><pre class='vaplcodeoutput' id='vaplcodeoutput"+newnum+"'>Output will appear...</pre>"
+        return newwindow
+      }
+
+      function runvaplcode(vaplcode,codewindownum){
+        $.post("https://vapl-fetchable.wwwthew.repl.co/output",{
+          data:vaplcode
+        }).done((res)=>{
+          console.log("res: "+res)
+          var output = document.getElementById("vaplcodeoutput"+codewindownum.toString())
+          output.innerHTML = res
+        })
+      }
+
+      function returninputtonormal(){
+        input.style = ""
+        input.disabled = false
+        input.value = ""
+      }
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (input.value) {
+          vapl_code = input.value.match(/\[vapl\](.*)\[\/vapl\]/)
+          if (vapl_code !== null){
+            vapl_code = vapl_code[1]
+            console.log(input.value.match(/\[vapl\](.*)\[\/vapl\]/)[0])
+            input.value = input.value.replace(input.value.match(/\[vapl\](.*)\[\/vapl\]/)[0],getcodewindow(vapl_code))
+          }
+          if (input.value.match(/<script>.*<\/script>/) !== null){
+            input.style.backgroundColor = "red"
+            input.style.color = "black"
+            input.disabled = true
+            input.value = "DON'T THINK ABOUT XSS ATTACKING US 🤬"
+            setTimeout(returninputtonormal,5000)
+            return;
+          }
+          usr = urlthing.get("username")
+          socket.emit('chat message', "<span>"+usr+": "+input.value+"</span>",room);
+          input.value = '';
+        }
+      });
+
+      socket.on('chat message', function(msg) {
+        var item = document.createElement('li');
+        item.setAttribute("id","msg"+message_num)
+        messages.appendChild(item);
+        item.innerHTML = msg;
+        window.scrollTo(0, document.body.scrollHeight);
+        message_num++
+        if (document.hidden){
+          notif.play()
+        }
+      });
+
+      socket.on('kick',function(user){
+        console.log(user, username)
+        if (user === username){
+          window.location.replace("https://socketio-chat.wwwthew.repl.co/kick")
+        }
+      });
+      socket.on("chat history", (array)=>{
+        if (!new Map(Object.entries(array)).get(room)){
+					array = []
+				}else{
+					array = Array.from(Object.keys(new Map(Object.entries(array)).get(room)))
+				}
+        message_num = 0
+        document.querySelectorAll("#messages>li").forEach(element=>element.remove())
+        array.forEach(element=>{
+          var item = document.createElement('li')
+          item.setAttribute("id", "msg"+message_num);
+          messages.appendChild(item);
+          item.innerHTML = element;
+          window.scrollTo(0, document.body.scrollHeight);
+          message_num++
+        });
+      });
+      socket.on("clear history",function(){
+        document.getElementById("messages").innerHTML = ""
+      });
+      socket.on("delete msg",(id)=>{
+        var elementdelete = document.getElementById(id)
+        console.log(elementdelete)
+        //texter = elementdelete.parentElement
+        //console.log(texter.firstElementChild.innerText)
+        /*elementdelete.parentNode.removeChild(elementdelete);
+        texter.parentNode.removeChild(texter);*/
+        elementdelete.remove()
+        //texter.remove()
+        console.log("deleted")
+      });
+      socket.on('notification @',(name)=>{
+        if (username === name){
+          atnotif.play()
+        }
+      });
+      socket.on("delete msg",(roomname,msgid)=>{
+        if (roomname === room){
+          document.getElementById(msgid).remove()
+        }
+      })
+    </script>
+    <script>
+      window.addEventListener("message", (event) => {
+        socket.emit('chat message', event.data.toString().substring(29,event.data.toString().length-1))
+        console.log("chatted")
+        return;
+      }, false);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+[
+	{
+		"name": "WWWtheW Bot",
+		"actions": {
+			"Hi":["Hi!!! I'm the WWWtheW Bot!"],
+			"Hi!":["Hi!!! I'm the WWWtheW Bot!"],
+			"hi":["Hi!!! I'm the WWWtheW Bot!"],
+			"hi!":["Hi!!! I'm the WWWtheW Bot!"],
+			"Hello":["Hi!!! I'm the WWWtheW Bot!"],
+			"Hello!":["Hi!!! I'm the WWWtheW Bot!"],
+			"hello":["Hi!!! I'm the WWWtheW Bot!"],
+			"hello!":["Hi!!! I'm the WWWtheW Bot!"],
+			"Bye!":["Okay have a great day!", "Bye! :D", "Okay!"],
+			"bye!":["Okay have a great day!", "Bye! :D", "Okay!"],
+			"Bye":["Okay have a great day!", "Bye! :D", "Okay!"],
+			"bye":["Okay have a great day!", "Bye! :D", "Okay!"],
+			"Have a great day!":["You too!"],
+			"have a great day!":["You too!"]
+		},
+		"status": "0.0.1",
+		"default": true
+	},
+	{
+		"name": "Rival Bot",
+		"actions": {
+			"Hi": ["OI mind your own business wwwthew bot"],
+			"Hi!": ["OI mind your own business wwwthew bot"],
+			"hi": ["OI mind your own business wwwthew bot"],
+			"hi!": ["OI mind your own business wwwthew bot"]
+		},
+		"status": "0.0.1",
+		"default": false
+	}
+]
